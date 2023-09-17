@@ -12,10 +12,27 @@ pub enum Player {
     Player2 = 1,
 }
 
+impl Player {
+    pub fn other(&self) -> Player {
+        match self {
+            Player::Player1 => Player::Player2,
+            Player::Player2 => Player::Player1,
+        }
+    }
+
+    pub fn num(&self) -> usize {
+        match self {
+            Player::Player1 => 1,
+            Player::Player2 => 2,
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 enum GameState {
     CreateShips { grids: [Grid; 2] },
     PlayGame { grids: [Grid; 2], turn: Player },
+    GameOver { grids: [Grid; 2] },
 }
 #[derive(Debug, Error)]
 pub enum GameAddShipError {
@@ -70,6 +87,7 @@ impl Game {
         match &self.state {
             GameState::CreateShips { grids } => &grids[player as usize],
             GameState::PlayGame { grids, .. } => &grids[player as usize],
+            GameState::GameOver { grids } => &grids[player as usize],
         }
     }
 
@@ -115,23 +133,30 @@ impl Game {
         }
     }
 
-    pub fn guess_position(&mut self, player: Player, coords: Location) -> Result<(), GuessError> {
+    pub fn guess_position(&mut self, player: Player, coords: Location) -> Result<bool, GuessError> {
         match &mut self.state {
             GameState::PlayGame { grids, turn } => {
                 if player != *turn {
                     return Err(GuessError::WrongPlayer);
                 }
-                grids[1 - *turn as usize].guess_grid(coords);
-                Ok(())
+                let result = grids[1 - *turn as usize].guess_grid(coords);
+                *turn = match player {
+                    Player::Player1 => Player::Player2,
+                    Player::Player2 => Player::Player1,
+                };
+                Ok(result)
             }
             _ => Err(GuessError::WrongState),
         }
     }
 
-    pub fn check_if_win(&self) -> Result<Option<Player>, CheckWinError> {
+    pub fn check_if_win(&mut self) -> Result<Option<Player>, CheckWinError> {
         match &self.state {
             GameState::PlayGame { grids, .. } => {
                 if grids[0].get_all_found().len() == grids[0].get_all().len() {
+                    self.state = GameState::GameOver {
+                        grids: grids.clone(),
+                    };
                     Ok(Some(Player::Player2))
                 } else if grids[1].get_all_found().len() == grids[1].get_all().len() {
                     Ok(Some(Player::Player1))

@@ -10,7 +10,7 @@ pub struct Ship {
     found: HashMap<Location, bool>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
 pub enum ShipDir {
     Horz,
     Vert,
@@ -126,10 +126,13 @@ impl Grid {
         self.get_all().len() == self.get_all_found().len()
     }
 
-    pub fn guess_grid(&mut self, coords: Location) {
+    pub fn guess_grid(&mut self, coords: Location) -> bool {
         for i in 0..self.ships.len() {
-            self.ships[i].guess(coords);
+            if self.ships[i].guess(coords) {
+                return true;
+            }
         }
+        false
     }
 
     pub fn get_display(&self, see_unfound: bool) -> GridDisplay {
@@ -170,5 +173,82 @@ impl<'g> std::fmt::Display for GridDisplay<'g> {
             writeln!(f)?;
         }
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use maplit::*;
+
+    fn ship_horz_3() -> Ship {
+        Ship {
+            coords: vec![
+                Location { x: 0, y: 0 },
+                Location { x: 1, y: 0 },
+                Location { x: 2, y: 0 },
+            ],
+            found: hashmap! {
+                Location { x: 0, y: 0 } => false,
+                Location { x: 1, y: 0 } => false,
+                Location { x: 2, y: 0 } => false,
+            },
+        }
+    }
+    fn ship_vert_4() -> Ship {
+        Ship {
+            coords: vec![
+                Location { x: 1, y: 1 },
+                Location { x: 1, y: 2 },
+                Location { x: 1, y: 3 },
+                Location { x: 1, y: 4 },
+            ],
+            found: hashmap! {
+                Location { x: 1, y: 1 } => false,
+                Location { x: 1, y: 2 } => false,
+                Location { x: 1, y: 3 } => false,
+                Location { x: 1, y: 4 } => false,
+            },
+        }
+    }
+
+    #[test]
+    fn test_ship_new() {
+        assert_eq!(
+            Ship::new(Location { x: 0, y: 0 }, ShipDir::Horz, 3),
+            ship_horz_3()
+        );
+        assert_eq!(
+            Ship::new(Location { x: 1, y: 1 }, ShipDir::Vert, 4),
+            ship_vert_4()
+        );
+    }
+
+    #[test]
+    fn test_ship_guess() {
+        {
+            let mut s = ship_horz_3();
+            assert!(s.guess(Location { x: 0, y: 0 }));
+            assert_eq!(
+                s,
+                Ship {
+                    coords: vec![
+                        Location { x: 0, y: 0 },
+                        Location { x: 1, y: 0 },
+                        Location { x: 2, y: 0 },
+                    ],
+                    found: hashmap! {
+                        Location { x: 0, y: 0 } => true,
+                        Location { x: 1, y: 0 } => false,
+                        Location { x: 2, y: 0 } => false,
+                    },
+                }
+            );
+        }
+        {
+            let mut s = ship_horz_3();
+            assert!(!s.guess(Location { x: 10, y: 10 }));
+            assert_eq!(s, ship_horz_3());
+        }
     }
 }
