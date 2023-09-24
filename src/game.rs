@@ -1,3 +1,4 @@
+use serde::Serialize;
 use thiserror::Error;
 
 use crate::{
@@ -6,7 +7,7 @@ use crate::{
 };
 const SHIPS_ORDER: [i32; 5] = [2, 3, 3, 4, 5];
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Serialize, Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Player {
     Player1 = 0,
     Player2 = 1,

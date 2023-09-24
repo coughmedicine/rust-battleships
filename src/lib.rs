@@ -248,6 +248,13 @@ enum Command {
     GuessPos(GuessPosCommand),
 }
 
+#[derive(Serialize, Debug)]
+enum GameState {
+    Adding { ships: Vec<Vec<Location>> },
+    Guessing {},
+    Won(Player),
+}
+
 // this macro reduces boring code duplication, needs to be a macro because one of the arguments is the type of command to match
 macro_rules! message_to_cmd {
     ($cmd:path, $m:expr) => {
@@ -277,7 +284,28 @@ async fn do_game(
     let stream2 = r2.map(|m| (Player::Player2, m));
     let mut combined_stream = select(stream1, stream2);
 
+    macro_rules! send_adding {
+        () => {
+            for p in [Player::Player1, Player::Player2] {
+                let grid = game.get_grid(p);
+                let mut ships = vec![];
+                for s in grid.ships.iter() {
+                    let mut ship = vec![];
+                    for c in s.get_coords() {
+                        ship.push(*c);
+                    }
+                    ships.push(ship);
+                }
+                let msg = GameState::Adding { ships };
+                let msg_str = serde_json::to_string(&msg);
+                let msg_ws = Message::Text(msg_str.unwrap());
+                senders[p as usize].send(msg_ws).await?;
+            }
+        };
+    }
+
     // ADDING THE SHIPS
+    send_adding!();
     while let Some((p, m)) = combined_stream.next().await {
         println!("Received message");
         let m = m?;
@@ -294,6 +322,8 @@ async fn do_game(
             }
             _ => {}
         }
+
+        send_adding!();
 
         match game.change_to_playing() {
             Err(e @ ChangeToPlayingError::WrongState) => {

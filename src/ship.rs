@@ -35,6 +35,12 @@ impl Ship {
         Self { coords, found }
     }
 
+    // &[T] is an "immutable slice", like a borrowed version of a Vec but you can't mutate it at all
+    // &mut [T] would be a "mutable slice", where the elements are mutable but you still can't e.g. push/pop
+    pub fn get_coords(&self) -> &[Location] {
+        &self.coords
+    }
+
     pub fn remove(&mut self, coord: Location) {
         //found this online, dont understand it but seems to work?
         let index = self.coords.iter().position(|&r| r == coord).unwrap();
