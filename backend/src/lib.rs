@@ -249,10 +249,16 @@ enum Command {
 }
 
 #[derive(Serialize, Debug)]
+#[serde(tag = "type")]
 enum GameState {
-    Adding { ships: Vec<Vec<Location>> },
+    Adding {
+        ships: Vec<Vec<Location>>,
+        size: i32,
+    },
     Guessing {},
-    Won(Player),
+    Won {
+        who: Player,
+    },
 }
 
 // this macro reduces boring code duplication, needs to be a macro because one of the arguments is the type of command to match
@@ -296,7 +302,7 @@ async fn do_game(
                     }
                     ships.push(ship);
                 }
-                let msg = GameState::Adding { ships };
+                let msg = GameState::Adding { ships, size: 10 };
                 let msg_str = serde_json::to_string(&msg);
                 let msg_ws = Message::Text(msg_str.unwrap());
                 senders[p as usize].send(msg_ws).await?;
