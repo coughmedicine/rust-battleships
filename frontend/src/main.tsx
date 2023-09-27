@@ -30,6 +30,19 @@ export type GameState =
   | GuessingState
   | WonState;
 
+export type AddShipCommand = {
+  type: "AddShip";
+  loc: Location;
+  dir: ShipDir;
+};
+export type ShipDir = "Horz" | "Vert";
+export type GuessPosCommand = {
+  type: "GuessPos";
+  loc: Location;
+};
+
+export type Command = AddShipCommand | GuessPosCommand;
+
 export const useGameState = create<GameState>(() => ({
   type: "Waiting",
 }));

@@ -243,6 +243,7 @@ struct GuessPosCommand {
 }
 
 #[derive(Deserialize, Debug)]
+#[serde(tag = "type")]
 enum Command {
     AddShip(AddShipCommand),
     GuessPos(GuessPosCommand),
