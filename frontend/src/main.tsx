@@ -18,6 +18,17 @@ export type AddingState = {
 };
 export type GuessingState = {
   type: "Guessing";
+
+  turn: Player;
+
+  your_correct_guesses: [Location];
+  your_incorrect_guesses: [Location];
+
+  opps_correct_guesses: [Location];
+  opps_incorrect_guesses: [Location];
+  your_ships: [[Location]];
+
+  size: number;
 };
 export type WonState = {
   type: "Won";

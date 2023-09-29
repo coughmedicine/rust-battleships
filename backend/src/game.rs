@@ -92,6 +92,14 @@ impl Game {
         }
     }
 
+    pub fn get_turn(&self) -> Result<Player, ()> {
+        match self.state {
+            GameState::CreateShips { .. } => Err(()),
+            GameState::PlayGame { turn, .. } => Ok(turn),
+            GameState::GameOver { .. } => Err(()),
+        }
+    }
+
     pub fn add_ship(
         &mut self,
         player: Player,

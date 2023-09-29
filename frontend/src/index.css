@@ -1,3 +1,6 @@
 :root {
   box-sizing: border-box;
+  font-family: monospace;
+  background-color: rgb(25, 25, 44);
+  color: white;
 }

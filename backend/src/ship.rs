@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 
 use thiserror::Error;
 
-use crate::location::Location;
+use crate::location::{self, Location};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Ship {
@@ -68,6 +68,7 @@ pub enum AddShipError {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Grid {
     pub ships: Vec<Ship>,
+    pub wrong_guesses: Vec<Location>,
     pub size: i32,
 }
 impl Grid {
@@ -75,6 +76,7 @@ impl Grid {
         Self {
             ships: vec![],
             size,
+            wrong_guesses: vec![],
         }
     }
 
@@ -138,6 +140,7 @@ impl Grid {
                 return true;
             }
         }
+        self.wrong_guesses.push(coords);
         false
     }
 

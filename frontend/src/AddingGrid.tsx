@@ -26,7 +26,7 @@ function AddingGrid(props: { state: AddingState }) {
   };
 
   return (
-    <>
+    <div id="adding-grid">
       {[...Array(state.size).keys()].map((y) => (
         <div key={y}>
           {[...Array(state.size).keys()].map((x) => (
@@ -44,6 +44,7 @@ function AddingGrid(props: { state: AddingState }) {
           ))}
         </div>
       ))}
+      <br />
       <div>
         <input
           type="radio"
@@ -64,7 +65,7 @@ function AddingGrid(props: { state: AddingState }) {
         />
         <label htmlFor="vert-radio">Vertical</label>
       </div>
-    </>
+    </div>
   );
 }
 

@@ -201,10 +201,9 @@ async fn handle_socket(mut socket: WebSocket, state: Arc<WaitingState>) {
     let mut websockets = state.websockets.lock().await;
 
     if socket
-        .send(Message::Text(format!(
-            "You are player {}/2.",
-            websockets.len() + 1,
-        )))
+        .send(Message::Text(
+            serde_json::to_string(&GameState::Waiting).unwrap(),
+        ))
         .await
         .is_err()
     {
@@ -252,11 +251,24 @@ enum Command {
 #[derive(Serialize, Debug)]
 #[serde(tag = "type")]
 enum GameState {
+    Waiting,
     Adding {
         ships: Vec<Vec<Location>>,
         size: i32,
     },
-    Guessing {},
+    Guessing {
+        you: Player,
+        turn: Player,
+
+        your_correct_guesses: Vec<Location>,
+        your_incorrect_guesses: Vec<Location>,
+
+        opps_correct_guesses: Vec<Location>,
+        opps_incorrect_guesses: Vec<Location>,
+        your_ships: Vec<Vec<Location>>,
+
+        size: i32,
+    },
     Won {
         who: Player,
     },
@@ -283,10 +295,6 @@ async fn do_game(
     [r1, r2]: [SplitStream<WebSocket>; 2],
     mut game: Game,
 ) -> anyhow::Result<()> {
-    for s in senders.iter_mut() {
-        s.send(Message::Text("Game started!".to_owned())).await?;
-    }
-
     let stream1 = r1.map(|m| (Player::Player1, m));
     let stream2 = r2.map(|m| (Player::Player2, m));
     let mut combined_stream = select(stream1, stream2);
@@ -343,7 +351,50 @@ async fn do_game(
 
     println!("All ships received, game changed state");
 
+    macro_rules! send_guessing {
+        () => {
+            for p in [Player::Player1, Player::Player2] {
+                let grid = game.get_grid(p);
+                let mut your_ships = vec![];
+                for s in grid.ships.iter() {
+                    let mut ship = vec![];
+                    for c in s.get_coords() {
+                        ship.push(*c);
+                    }
+                    your_ships.push(ship);
+                }
+
+                let other_grid = game.get_grid(p.other());
+                let your_correct_guesses = other_grid.get_all_found();
+                let your_incorrect_guesses = other_grid.wrong_guesses.clone();
+
+                let opps_correct_guesses = grid.get_all_found();
+                let opps_incorrect_guesses = grid.wrong_guesses.clone();
+
+                let turn = match game.get_turn() {
+                    Ok(player) => player,
+                    _ => bail!("Cannot return turn due to wrong state"),
+                };
+
+                let msg = GameState::Guessing {
+                    you: p,
+                    your_ships,
+                    size: 10,
+                    opps_correct_guesses,
+                    opps_incorrect_guesses,
+                    your_correct_guesses,
+                    your_incorrect_guesses,
+                    turn,
+                };
+                let msg_str = serde_json::to_string(&msg);
+                let msg_ws = Message::Text(msg_str.unwrap());
+                senders[p as usize].send(msg_ws).await?;
+            }
+        };
+    }
+
     // GUESSING SHIPS
+    send_guessing!();
     while let Some((p, m)) = combined_stream.next().await {
         println!("Received message");
         let m = m?;
@@ -356,20 +407,21 @@ async fn do_game(
             Err(e @ GuessError::WrongState) => {
                 bail!(e);
             }
-            Ok(b) => {
+            Ok(_) => {
                 // "for s in senders" moves out of senders so we need to not do that, ".iter()" is for getting references and ".iter_mut()" is for getting mutable references
-                for s in senders.iter_mut() {
-                    s.send(Message::Text(format!(
-                        "Player {} has guessed {} and {} an enemy ship!",
-                        p.num(),
-                        cmd.loc,
-                        match b {
-                            false => "missed",
-                            true => "destroyed",
-                        }
-                    )))
-                    .await?;
-                }
+                // for s in senders.iter_mut() {
+                //     s.send(Message::Text(format!(
+                //         "Player {} has guessed {} and {} an enemy ship!",
+                //         p.num(),
+                //         cmd.loc,
+                //         match b {
+                //             false => "missed",
+                //             true => "destroyed",
+                //         }
+                //     )))
+                //     .await?;
+                // }
+                send_guessing!();
             }
             _ => {}
         }

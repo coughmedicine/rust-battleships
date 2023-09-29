@@ -1,4 +1,23 @@
 .grid-field {
   width: 40px;
   height: 40px;
+  background-color: rgb(66, 66, 84);
+  border: 1px dotted rgba(135, 135, 152, 0.5);
+  transition: background-color 1.5s;
+}
+
+.grid-field:hover {
+  background-color: rgb(103, 103, 128);
+  transition: background-color 0.1s;
+}
+
+.grid-field:active {
+  background-color: orange;
+  transition: background-color 0.1s;
+}
+
+#adding-grid {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
